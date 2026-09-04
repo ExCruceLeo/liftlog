@@ -1,62 +1,106 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f2f2f7">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon.svg">
+<link rel="manifest" href="manifest.json">
 <title>LiftLog</title>
 <style>
-:root{--bg:#f2f2f7;--card:#fff;--text:#111;--muted:#8e8e93;--line:#e5e5ea;--blue:#007aff;--green:#34c759}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif}
-.app{max-width:760px;margin:auto;min-height:100vh;padding-bottom:100px}
-.nav{position:sticky;top:0;z-index:10;padding:calc(env(safe-area-inset-top) + 10px) 18px 12px;background:rgba(242,242,247,.92);backdrop-filter:blur(22px);border-bottom:1px solid #d1d1d6}
-.navrow{display:flex;align-items:center;justify-content:space-between}.title{font-size:34px;font-weight:700;letter-spacing:-1.2px}.count{color:var(--muted);font-size:14px;margin-top:2px}
-.iconbtn{width:42px;height:42px;border-radius:50%;border:0;background:var(--blue);color:white;font-size:26px;line-height:42px}
-.content{padding:18px}
-.sectiontitle{font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:600;margin:0 4px 8px}
-.card{background:var(--card);border-radius:18px;overflow:hidden;box-shadow:0 1px 2px #00000008;margin-bottom:18px}
-.exerciseHead{display:flex;align-items:center;padding:15px 16px;border-bottom:1px solid var(--line)}
-.name{font-size:18px;font-weight:650;flex:1}.remove{border:0;background:#f2f2f7;color:#ff3b30;border-radius:50%;width:30px;height:30px;font-size:18px}
-.history{display:flex;overflow-x:auto;padding:14px 12px 16px;gap:10px;scrollbar-width:none}.history::-webkit-scrollbar{display:none}
-.entry{flex:0 0 108px;background:#f2f2f7;border-radius:14px;padding:11px 8px;text-align:center}.entry .num{font-size:11px;color:var(--muted);margin-bottom:5px}.entry input{width:100%;border:0;background:transparent;text-align:center;font-size:16px;font-weight:600;outline:none;color:var(--text)}
-.entry.latest{background:#e8f2ff}.entry.latest .num{color:var(--blue)}
-.addEntry{flex:0 0 108px;border:1px dashed #c7c7cc;border-radius:14px;background:transparent;color:var(--blue);font-size:15px;font-weight:600}
-.fab{position:fixed;z-index:20;right:20px;bottom:calc(env(safe-area-inset-bottom) + 20px);left:20px;max-width:720px;margin:auto;height:54px;border:0;border-radius:17px;background:var(--blue);color:white;font-size:17px;font-weight:650;box-shadow:0 7px 22px #007aff45}
-.empty{text-align:center;padding:65px 20px;color:var(--muted)}.emptyIcon{font-size:46px;margin-bottom:12px}.empty b{display:block;color:var(--text);font-size:20px;margin-bottom:5px}
-.modal{display:none;position:fixed;inset:0;z-index:50;background:#0006;align-items:flex-end}.sheet{width:100%;background:#f2f2f7;border-radius:22px 22px 0 0;padding:18px 18px calc(env(safe-area-inset-bottom) + 20px);animation:up .2s ease}
-@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}.grab{width:38px;height:5px;border-radius:5px;background:#c7c7cc;margin:0 auto 20px}
-.sheet h2{margin:0 0 14px;font-size:22px}.sheet input{width:100%;padding:15px;border:0;border-radius:13px;background:#fff;font-size:17px;outline:0}.sheet .primary{width:100%;margin-top:12px;height:50px;border:0;border-radius:13px;background:var(--blue);color:#fff;font-size:17px;font-weight:650}.cancel{width:100%;border:0;background:none;color:var(--blue);font-size:16px;padding:15px}
+*{box-sizing:border-box}body{margin:0;background:#f2f2f7;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
+.app{max-width:900px;margin:auto;padding:env(safe-area-inset-top) 14px calc(28px + env(safe-area-inset-bottom))}
+header{padding:18px 4px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#f2f2f7cc;backdrop-filter:blur(12px);z-index:3}
+h1{font-size:30px;margin:0;font-weight:750}.actions{display:flex;gap:8px}.btn{border:0;border-radius:12px;padding:10px 14px;font-size:15px;font-weight:650;background:#007aff;color:white}.btn.secondary{background:#e5e5ea;color:#111}
+.card{background:#fff;border-radius:18px;margin:12px 0;padding:14px;box-shadow:0 1px 3px #00000012}
+.cardtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.name{font-size:19px;font-weight:700}.delete{border:0;background:transparent;color:#ff3b30;font-size:14px}
+.scroller{overflow-x:auto;-webkit-overflow-scrolling:touch}.grid{display:grid;grid-auto-flow:column;grid-auto-columns:116px;gap:8px;min-width:max-content}.cell{height:76px;border:1px solid #d1d1d6;border-radius:13px;background:#f8f8fa;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:15px}.cell.latest{border:2px solid #007aff}.cell.empty{color:#8e8e93;font-weight:500}.wlabel{font-size:11px;color:#8e8e93;margin-bottom:4px}.emptyState{text-align:center;padding:42px 20px;color:#6e6e73}
+.overlay{position:fixed;inset:0;background:#0006;display:none;align-items:flex-end;z-index:10}.sheet{background:#f2f2f7;width:100%;border-radius:22px 22px 0 0;padding:18px max(18px,calc((100% - 600px)/2)) calc(24px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto}.sheet h2{margin:0 0 16px}.field{background:#fff;border-radius:14px;padding:12px;margin:9px 0}.field label{display:block;color:#6e6e73;font-size:12px;margin-bottom:6px}.field input{width:100%;border:0;outline:0;font-size:19px;background:transparent}.step{display:flex;align-items:center;gap:10px}.step button{width:48px;height:44px;border:0;border-radius:12px;background:#e5e5ea;font-size:25px}.step input{text-align:center}.sheetActions{display:flex;gap:10px;margin-top:14px}.sheetActions .btn{flex:1}.danger{background:#ff3b30!important}
+#workoutsBar{display:flex;gap:8px;overflow:auto;padding:3px 2px 8px}.pill{white-space:nowrap;background:#e5e5ea;border:0;border-radius:20px;padding:8px 12px}.pill.active{background:#007aff;color:white}
+.migrate{background:#fff7d6;border-radius:14px;padding:12px;margin:8px 0;font-size:14px;display:none}.migrate button{margin-top:8px}
 </style>
 </head>
 <body>
 <div class="app">
-<header class="nav"><div class="navrow"><div><div class="title">LiftLog</div><div class="count" id="count"></div></div><button class="iconbtn" onclick="openExercise()">＋</button></div></header>
-<main class="content" id="app"></main>
-<button class="fab" onclick="addWorkout()">＋ Log New Workout</button>
+<header><h1>LiftLog</h1><div class="actions"><button class="btn secondary" onclick="addExercise()">+ Exercise</button><button class="btn" onclick="addWorkout()">+ Workout</button></div></header>
+<div id="migrationNotice" class="migrate"></div>
+<div id="workoutsBar"></div><main id="list"></main>
+<div id="empty" class="emptyState">Add an exercise to get started.</div>
 </div>
-<div class="modal" id="modal"><div class="sheet"><div class="grab"></div><h2>Add Exercise</h2><input id="exerciseInput" placeholder="e.g. Bench Press" autocomplete="off"><button class="primary" onclick="createExercise()">Add Exercise</button><button class="cancel" onclick="closeModal()">Cancel</button></div></div>
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeSheet()">
+<div class="sheet">
+<h2 id="sheetTitle">Workout</h2>
+<div class="field"><label>Load / Weight</label><div class="step"><button onclick="stepWeight(-1)">−</button><input id="load" placeholder="135, Red, Bodyweight"><button onclick="stepWeight(1)">+</button></div></div>
+<div class="field"><label>Reps</label><div class="step"><button onclick="stepReps(-1)">−</button><input id="reps" inputmode="numeric" placeholder="10"><button onclick="stepReps(1)">+</button></div></div>
+<div class="sheetActions"><button class="btn secondary" onclick="closeSheet()">Cancel</button><button class="btn" onclick="saveEntry()">Save</button></div>
+<button class="btn danger" style="width:100%;margin-top:10px" onclick="deleteCurrentWorkout()">Delete This Workout</button>
+</div></div>
 <script>
-const KEY="liftlogV2";let data=JSON.parse(localStorage.getItem(KEY)||'{"workouts":0,"exercises":[]}');
+const KEY="liftlogV3";
+let data=JSON.parse(localStorage.getItem(KEY)||'{"workouts":0,"exercises":[]}');
+let current={ei:0,wi:0};
+
+function normalizeOld(old){
+  // Supports the prior LiftLog data shape: {workouts, exercises:[{name, entries:[]}]}
+  if(!old || !Array.isArray(old.exercises)) return null;
+  let workouts=Number(old.workouts)||0;
+  let exercises=old.exercises.map(e=>({name:String(e.name||"Exercise"),entries:Array.isArray(e.entries)?e.entries.map(x=>x==null?"":String(x)):[]}));
+  workouts=Math.max(workouts,...exercises.map(e=>e.entries.length),0);
+  exercises.forEach(e=>{while(e.entries.length<workouts)e.entries.push("")});
+  return {workouts,exercises};
+}
+function migrate(){
+  if(localStorage.getItem(KEY)) return;
+  const candidates=["liftlogV2","liftlog","workoutTracker","workoutData"];
+  for(const k of candidates){
+    try{
+      const old=JSON.parse(localStorage.getItem(k)||"null");
+      const n=normalizeOld(old);
+      if(n && (n.exercises.length||n.workouts)){data=n;localStorage.setItem(KEY,JSON.stringify(data));return k}
+    }catch(e){}
+  }
+  return null;
+}
+const migratedFrom=migrate();
+
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
-function openExercise(){modal.style.display="flex";setTimeout(()=>exerciseInput.focus(),100)}
-function closeModal(){modal.style.display="none";exerciseInput.value=""}
-function createExercise(){let n=exerciseInput.value.trim();if(!n)return;data.exercises.push({name:n,entries:Array(data.workouts).fill("")});save();closeModal()}
-function addWorkout(){data.workouts++;data.exercises.forEach(e=>e.entries.push(""));save();setTimeout(()=>{document.querySelectorAll(".history").forEach(x=>x.scrollLeft=x.scrollWidth)},50)}
-function setEntry(i,j,v){data.exercises[i].entries[j]=v;localStorage.setItem(KEY,JSON.stringify(data))}
-function removeExercise(i){if(confirm("Remove "+data.exercises[i].name+"?")){data.exercises.splice(i,1);save()}}
+function addExercise(){
+ let n=prompt("Exercise name"); if(!n||!n.trim())return;
+ data.exercises.push({name:n.trim(),entries:Array(data.workouts).fill("")}); save();
+}
+function addWorkout(){data.workouts++;data.exercises.forEach(e=>e.entries.push(""));save();current.wi=data.workouts-1}
+function removeExercise(i){if(confirm("Delete "+data.exercises[i].name+"?")){data.exercises.splice(i,1);save()}}
+function parse(v){let m=(v||"").split(/[×x]/);return{load:(m[0]||"").trim(),reps:(m[1]||"").trim()}}
+function openEntry(ei,wi){
+ current={ei,wi};let p=parse(data.exercises[ei].entries[wi]||"");
+ document.getElementById("sheetTitle").textContent=data.exercises[ei].name+" • Workout "+(wi+1);
+ document.getElementById("load").value=p.load;document.getElementById("reps").value=p.reps;
+ document.getElementById("overlay").style.display="flex";
+}
+function closeSheet(){document.getElementById("overlay").style.display="none"}
+function saveEntry(){
+ let load=document.getElementById("load").value.trim(),reps=document.getElementById("reps").value.trim();
+ data.exercises[current.ei].entries[current.wi]=load?(reps?load+" × "+reps:load):"";
+ closeSheet();save();
+}
+function stepWeight(d){
+ let el=document.getElementById("load"),v=el.value.trim(),m=v.match(/^(-?\d+(?:\.\d+)?)(.*)$/);if(!m)return;
+ let num=parseFloat(m[1])+d*2.5;el.value=(Number.isInteger(num)?num:num.toFixed(1))+m[2];
+}
+function stepReps(d){let el=document.getElementById("reps"),n=parseInt(el.value||"0",10)+d;el.value=Math.max(0,n)}
+function deleteCurrentWorkout(){
+ if(!data.workouts)return;
+ if(!confirm("Delete Workout "+(current.wi+1)+" for every exercise?"))return;
+ data.workouts--;data.exercises.forEach(e=>e.entries.splice(current.wi,1));
+ closeSheet();current.wi=Math.max(0,data.workouts-1);save();
+}
 function render(){
-count.textContent=data.exercises.length+(data.exercises.length===1?" exercise":" exercises");
-if(!data.exercises.length){app.innerHTML='<div class="empty"><div class="emptyIcon">🏋️</div><b>Your workout log is empty</b><span>Add an exercise to start tracking your progress.</span></div>';return}
-let h='<div class="sectiontitle">Progress</div>';
-data.exercises.forEach((e,i)=>{h+=`<section class="card"><div class="exerciseHead"><div class="name">${esc(e.name)}</div><button class="remove" onclick="removeExercise(${i})">−</button></div><div class="history">`;
-if(!data.workouts)h+='<div style="padding:8px;color:#8e8e93">No workouts logged yet.</div>';
-for(let j=0;j<data.workouts;j++)h+=`<div class="entry ${j===data.workouts-1?'latest':''}"><div class="num">Workout ${j+1}</div><input inputmode="text" placeholder="135 × 10" value="${esc(e.entries[j]||"")}" onchange="setEntry(${i},${j},this.value)"></div>`;
-h+=`<button class="addEntry" onclick="addWorkout()">＋ Log</button></div></section>`});app.innerHTML=h}
-function esc(s){return String(s).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;')}
-exerciseInput.addEventListener("keydown",e=>{if(e.key==="Enter")createExercise()});render();
+ let list=document.getElementById("list"),bar=document.getElementById("workoutsBar"),empty=document.getElementById("empty");
+ bar.innerHTML="";for(let w=0;w<data.workouts;w++){let b=document.createElement("button");b.className="pill"+(w===data.workouts-1?" active":"");b.textContent="Workout "+(w+1);b.onclick=()=>{current.wi=w;document.querySelectorAll(".pill").forEach(x=>x.classList.remove("active"));b.classList.add("active")};bar.appendChild(b)}
+ list.innerHTML="";empty.style.display=data.exercises.length?"none":"block";
+ data.exercises.forEach((e,ei)=>{let c=document.createElement("section");c.className="card";let top=document.createElement("div");top.className="cardtop";top.innerHTML='<div class="name"></div><button class="delete">Delete</button>';top.querySelector(".name").textContent=e.name;top.querySelector(".delete").onclick=()=>removeExercise(ei);c.appendChild(top);let s=document.createElement("div");s.className="scroller";let g=document.createElement("div");g.className="grid";
+ for(let w=0;w<data.workouts;w++){let cell=document.createElement("button");cell.className="cell"+(w===data.workouts-1?" latest":"")+(e.entries[w]?"":" empty");cell.innerHTML='<div class="wlabel">Workout '+(w+1)+'</div>';let v=document.createElement("div");v.textContent=e.entries[w]||"Tap to enter";cell.appendChild(v);cell.onclick=()=>openEntry(ei,w);g.appendChild(cell)}
+ s.appendChild(g);c.appendChild(s);list.appendChild(c)});
+}
+if(migratedFrom){const n=document.getElementById("migrationNotice");n.style.display="block";n.innerHTML="Your existing workout data was imported from the previous version. <button class='btn secondary' onclick='this.parentElement.style.display=\"none\"'>OK</button>"}
+render();
 </script>
 </body></html>
