@@ -31,7 +31,8 @@ h1{font-size:30px;margin:0;font-weight:750}.actions{display:flex;gap:8px}.btn{bo
 <div class="field"><label>Load / Weight</label><div class="step"><button onclick="stepWeight(-1)">−</button><input id="load" placeholder="135, Red, Bodyweight"><button onclick="stepWeight(1)">+</button></div></div>
 <div class="field"><label>Reps</label><div class="step"><button onclick="stepReps(-1)">−</button><input id="reps" inputmode="numeric" placeholder="10"><button onclick="stepReps(1)">+</button></div></div>
 <div class="sheetActions"><button class="btn secondary" onclick="closeSheet()">Cancel</button><button class="btn" onclick="saveEntry()">Save</button></div>
-<button class="btn danger" style="width:100%;margin-top:10px" onclick="deleteCurrentWorkout()">Delete This Workout</button>
+<button class="btn danger" style="width:100%;margin-top:10px" onclick="deleteCurrentEntry()">Delete This Lift Entry</button>
+<button class="btn danger" style="width:100%;margin-top:10px" onclick="deleteCurrentWorkout()">Delete Entire Workout</button>
 </div></div>
 <script>
 const KEY="liftlogV3";
@@ -86,6 +87,14 @@ function stepWeight(d){
  let num=parseFloat(m[1])+d*2.5;el.value=(Number.isInteger(num)?num:num.toFixed(1))+m[2];
 }
 function stepReps(d){let el=document.getElementById("reps"),n=parseInt(el.value||"0",10)+d;el.value=Math.max(0,n)}
+function deleteCurrentEntry(){
+ if(!data.exercises[current.ei]) return;
+ const lift=data.exercises[current.ei].name;
+ if(!confirm("Delete this entry for "+lift+" in Workout "+(current.wi+1)+"?")) return;
+ data.exercises[current.ei].entries[current.wi]="";
+ closeSheet();
+ save();
+}
 function deleteCurrentWorkout(){
  if(!data.workouts)return;
  if(!confirm("Delete Workout "+(current.wi+1)+" for every exercise?"))return;
