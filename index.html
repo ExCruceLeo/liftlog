@@ -15,12 +15,12 @@ h1{font-size:30px;margin:0;font-weight:750}.actions{display:flex;gap:8px}.btn{bo
 .scroller{overflow-x:auto;-webkit-overflow-scrolling:touch}.grid{display:grid;grid-auto-flow:column;grid-auto-columns:116px;gap:8px;min-width:max-content}.cell{height:76px;border:1px solid #d1d1d6;border-radius:13px;background:#f8f8fa;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:15px}.cell.latest{border:2px solid #007aff}.cell.empty{color:#8e8e93;font-weight:500}.wlabel{font-size:11px;color:#8e8e93;margin-bottom:4px}.emptyState{text-align:center;padding:42px 20px;color:#6e6e73}
 .overlay{position:fixed;inset:0;background:#0006;display:none;align-items:flex-end;z-index:10}.sheet{background:#f2f2f7;width:100%;border-radius:22px 22px 0 0;padding:18px max(18px,calc((100% - 600px)/2)) calc(24px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto}.sheet h2{margin:0 0 16px}.field{background:#fff;border-radius:14px;padding:12px;margin:9px 0}.field label{display:block;color:#6e6e73;font-size:12px;margin-bottom:6px}.field input{width:100%;border:0;outline:0;font-size:19px;background:transparent}.step{display:flex;align-items:center;gap:10px}.step button{width:48px;height:44px;border:0;border-radius:12px;background:#e5e5ea;font-size:25px}.step input{text-align:center}.sheetActions{display:flex;gap:10px;margin-top:14px}.sheetActions .btn{flex:1}.danger{background:#ff3b30!important}
 #workoutsBar{display:flex;gap:8px;overflow:auto;padding:3px 2px 8px}.pill{white-space:nowrap;background:#e5e5ea;border:0;border-radius:20px;padding:8px 12px}.pill.active{background:#007aff;color:white}
-.migrate{background:#fff7d6;border-radius:14px;padding:12px;margin:8px 0;font-size:14px;display:none}.migrate button{margin-top:8px}
+.group{margin:14px 0}.grouphead{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;border-radius:16px;background:#fff;padding:14px 16px;font-size:18px;font-weight:750;text-align:left}.groupbody.collapsed{display:none}.tiny{border:0;border-radius:10px;padding:7px 10px;background:#e5e5ea;font-size:12px}.exercisegroup{font-size:12px;color:#8e8e93;margin-top:3px}.migrate{background:#fff7d6;border-radius:14px;padding:12px;margin:8px 0;font-size:14px;display:none}.migrate button{margin-top:8px}
 </style>
 </head>
 <body>
 <div class="app">
-<header><h1>LiftLog</h1><div class="actions"><button class="btn secondary" onclick="addExercise()">+ Exercise</button><button class="btn" onclick="addWorkout()">+ Workout</button></div></header>
+<header><h1>LiftLog</h1><div class="actions"><button class="btn secondary" onclick="manageGroups()">Groups</button><button class="btn secondary" onclick="addExercise()">+ Exercise</button><button class="btn" onclick="addWorkout()">+ Workout</button></div></header>
 <div id="migrationNotice" class="migrate"></div>
 <div id="workoutsBar"></div><main id="list"></main>
 <div id="empty" class="emptyState">Add an exercise to get started.</div>
@@ -36,7 +36,8 @@ h1{font-size:30px;margin:0;font-weight:750}.actions{display:flex;gap:8px}.btn{bo
 </div></div>
 <script>
 const KEY="liftlogV3";
-let data=JSON.parse(localStorage.getItem(KEY)||'{"workouts":0,"exercises":[]}');
+let data=JSON.parse(localStorage.getItem(KEY)||'{"workouts":0,"exercises":[],"groups":[]}');
+if(!Array.isArray(data.groups))data.groups=[]; data.exercises.forEach(e=>{if(typeof e.group!=="string")e.group=""});
 let current={ei:0,wi:0};
 
 function normalizeOld(old){
@@ -65,7 +66,7 @@ const migratedFrom=migrate();
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
 function addExercise(){
  let n=prompt("Exercise name"); if(!n||!n.trim())return;
- data.exercises.push({name:n.trim(),entries:Array(data.workouts).fill("")}); save();
+ data.exercises.push({name:n.trim(),group:"",entries:Array(data.workouts).fill("")}); save();
 }
 function addWorkout(){data.workouts++;data.exercises.forEach(e=>e.entries.push(""));save();current.wi=data.workouts-1}
 function removeExercise(i){if(confirm("Delete "+data.exercises[i].name+"?")){data.exercises.splice(i,1);save()}}
@@ -101,13 +102,49 @@ function deleteCurrentWorkout(){
  data.workouts--;data.exercises.forEach(e=>e.entries.splice(current.wi,1));
  closeSheet();current.wi=Math.max(0,data.workouts-1);save();
 }
+
+function manageGroups(){
+ let choice=prompt("Type one of these commands:\nADD Kettlebell Workouts\nRENAME Old Name|New Name\nDELETE Group Name");
+ if(!choice)return;
+ let a=choice.split("|"), c=a[0].trim(), u=c.toUpperCase();
+ if(u.startsWith("ADD ")){let n=c.slice(4).trim();if(n&&!data.groups.some(g=>g.name.toLowerCase()==n.toLowerCase()))data.groups.push({name:n,collapsed:false});}
+ else if(u.startsWith("RENAME ")&&a[1]){let old=c.slice(7).trim(),n=a[1].trim(),g=data.groups.find(x=>x.name.toLowerCase()==old.toLowerCase());if(g&&n){g.name=n;data.exercises.forEach(e=>{if(e.group==old)e.group=n})}}
+ else if(u.startsWith("DELETE ")){let n=c.slice(7).trim();if(confirm("Delete this group? Exercises will become Ungrouped.")){data.groups=data.groups.filter(g=>g.name.toLowerCase()!=n.toLowerCase());data.exercises.forEach(e=>{if(e.group.toLowerCase()==n.toLowerCase())e.group=""})}}
+ save();
+}
+function changeExerciseGroup(i){
+ let opts=["Ungrouped"].concat(data.groups.map(g=>g.name));
+ let n=parseInt(prompt("Move "+data.exercises[i].name+" to group:\n"+opts.map((x,j)=>(j+1)+". "+x).join("\n")),10);
+ if(n>=1&&n<=opts.length){data.exercises[i].group=n==1?"":opts[n-1];save()}
+}
+function toggleGroup(name){
+ let g=data.groups.find(x=>x.name==name);if(g){g.collapsed=!g.collapsed;save()}
+}
+
 function render(){
  let list=document.getElementById("list"),bar=document.getElementById("workoutsBar"),empty=document.getElementById("empty");
- bar.innerHTML="";for(let w=0;w<data.workouts;w++){let b=document.createElement("button");b.className="pill"+(w===data.workouts-1?" active":"");b.textContent="Workout "+(w+1);b.onclick=()=>{current.wi=w;document.querySelectorAll(".pill").forEach(x=>x.classList.remove("active"));b.classList.add("active")};bar.appendChild(b)}
+ bar.innerHTML=""; for(let w=0;w<data.workouts;w++){let b=document.createElement("button");b.className="pill"+(w==data.workouts-1?" active":"");b.textContent="Workout "+(w+1);b.onclick=()=>{current.wi=w;document.querySelectorAll(".pill").forEach(x=>x.classList.remove("active"));b.classList.add("active")};bar.appendChild(b)}
  list.innerHTML="";empty.style.display=data.exercises.length?"none":"block";
- data.exercises.forEach((e,ei)=>{let c=document.createElement("section");c.className="card";let top=document.createElement("div");top.className="cardtop";top.innerHTML='<div class="name"></div><button class="delete">Delete</button>';top.querySelector(".name").textContent=e.name;top.querySelector(".delete").onclick=()=>removeExercise(ei);c.appendChild(top);let s=document.createElement("div");s.className="scroller";let g=document.createElement("div");g.className="grid";
- for(let w=0;w<data.workouts;w++){let cell=document.createElement("button");cell.className="cell"+(w===data.workouts-1?" latest":"")+(e.entries[w]?"":" empty");cell.innerHTML='<div class="wlabel">Workout '+(w+1)+'</div>';let v=document.createElement("div");v.textContent=e.entries[w]||"Tap to enter";cell.appendChild(v);cell.onclick=()=>openEntry(ei,w);g.appendChild(cell)}
- s.appendChild(g);c.appendChild(s);list.appendChild(c)});
+ function card(e,i){
+  let c=document.createElement("section");c.className="card";
+  let t=document.createElement("div");t.className="cardtop";t.innerHTML='<div><div class="name"></div><div class="exercisegroup"></div></div><button class="delete">Delete</button>';
+  t.querySelector(".name").textContent=e.name;t.querySelector(".exercisegroup").textContent=e.group?"Group: "+e.group:"Ungrouped";t.querySelector(".delete").onclick=()=>removeExercise(i);c.appendChild(t);
+  let cg=document.createElement("button");cg.className="tiny";cg.textContent="Change Group";cg.onclick=()=>changeExerciseGroup(i);c.appendChild(cg);
+  let sc=document.createElement("div");sc.className="scroller";let g=document.createElement("div");g.className="grid";
+  for(let w=0;w<data.workouts;w++){let cell=document.createElement("button");cell.className="cell"+(w==data.workouts-1?" latest":"")+(e.entries[w]?"":" empty");cell.innerHTML='<div class="wlabel">Workout '+(w+1)+'</div>';let v=document.createElement("div");v.textContent=e.entries[w]||"Tap to enter";cell.appendChild(v);cell.onclick=()=>openEntry(i,w);g.appendChild(cell)}
+  sc.appendChild(g);c.appendChild(sc);return c;
+ }
+ let names=data.groups.map(g=>g.name), used={};
+ names.forEach(n=>used[n]=[]);
+ data.exercises.forEach((e,i)=>{if(e.group&&used[e.group])used[e.group].push([e,i]);});
+ names.forEach(n=>{
+  let g=data.groups.find(x=>x.name==n),sec=document.createElement("div");sec.className="group";
+  let h=document.createElement("button");h.className="grouphead";h.innerHTML='<span><span class="arrow">'+(g.collapsed?"▶":"▼")+'</span> '+n+' ('+used[n].length+')</span>';h.onclick=()=>toggleGroup(n);sec.appendChild(h);
+  let body=document.createElement("div");body.className="groupbody"+(g.collapsed?" collapsed":"");
+  used[n].forEach(([e,i])=>body.appendChild(card(e,i)));sec.appendChild(body);list.appendChild(sec);
+ });
+ let un=data.exercises.map((e,i)=>[e,i]).filter(([e])=>!e.group);
+ if(un.length){let sec=document.createElement("div");sec.className="group";let h=document.createElement("button");h.className="grouphead";h.innerHTML='<span>▼ Ungrouped ('+un.length+')</span>';sec.appendChild(h);let body=document.createElement("div");un.forEach(([e,i])=>body.appendChild(card(e,i)));sec.appendChild(body);list.appendChild(sec);}
 }
 if(migratedFrom){const n=document.getElementById("migrationNotice");n.style.display="block";n.innerHTML="Your existing workout data was imported from the previous version. <button class='btn secondary' onclick='this.parentElement.style.display=\"none\"'>OK</button>"}
 render();

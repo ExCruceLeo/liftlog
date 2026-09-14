@@ -11,3 +11,6 @@ Important:
 - Numeric weight +/- buttons change by 2.5.
 - Reps +/- buttons change by 1.
 - Delete This Workout removes the entire workout column.
+
+
+v5 adds workout groups (create/rename/delete), moving existing exercises between groups, and collapsible group sections. Deleting a group does not delete exercises or history.
