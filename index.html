@@ -20,7 +20,7 @@ h1{font-size:30px;margin:0;font-weight:750}.actions{display:flex;gap:8px}.btn{bo
 </head>
 <body>
 <div class="app">
-<header><h1>LiftLog</h1><div class="actions"><button class="btn secondary" onclick="manageGroups()">Groups</button><button class="btn secondary" onclick="addExercise()">+ Exercise</button><button class="btn" onclick="addWorkout()">+ Workout</button></div></header>
+<header><h1>LiftLog</h1><div class="actions"><button class="btn secondary" onclick="manageGroups()">Groups</button><button onclick="backup()">Backup</button><button onclick="document.getElementById('restoreFile').click()">Restore</button><input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restore(event)"><button class="btn secondary" onclick="addExercise()">+ Exercise</button><button class="btn" onclick="addWorkout()">+ Workout</button></div></header>
 <div id="migrationNotice" class="migrate"></div>
 <div id="workoutsBar"></div><main id="list"></main>
 <div id="empty" class="emptyState">Add an exercise to get started.</div>
@@ -148,5 +148,36 @@ function render(){
 }
 if(migratedFrom){const n=document.getElementById("migrationNotice");n.style.display="block";n.innerHTML="Your existing workout data was imported from the previous version. <button class='btn secondary' onclick='this.parentElement.style.display=\"none\"'>OK</button>"}
 render();
+
+function backup(){
+  try{
+    const payload={app:"LiftLog",version:6,exportedAt:new Date().toISOString(),data:data};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob); a.download="LiftLog-backup.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  }catch(e){ alert("Backup could not be created."); }
+}
+function restore(ev){
+  const f=ev.target.files && ev.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=function(){
+    try{
+      const p=JSON.parse(r.result);
+      const restored=p.data || p;
+      if(!restored || !Array.isArray(restored.exercises)) throw new Error("Invalid backup");
+      if(!confirm("Restore this backup? This replaces the current LiftLog data.")) return;
+      data=restored;
+      if(!Array.isArray(data.groups)) data.groups=[];
+      localStorage.setItem(typeof KEY!=="undefined"?KEY:"liftlogV6",JSON.stringify(data));
+      if(typeof render==="function") render();
+      alert("Backup restored successfully.");
+    }catch(e){ alert("That backup file could not be restored."); }
+    finally{ ev.target.value=""; }
+  };
+  r.readAsText(f);
+}
+
 </script>
 </body></html>
