@@ -20,7 +20,7 @@ h1{font-size:30px;margin:0;font-weight:750}.actions{display:flex;gap:8px}.btn{bo
 </head>
 <body>
 <div class="app">
-<header><h1>LiftLog</h1><div class="actions"><button class="btn secondary" onclick="manageGroups()">Groups</button><button onclick="backup()">Backup</button><button onclick="document.getElementById('restoreFile').click()">Restore</button><input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restore(event)"><button class="btn secondary" onclick="addExercise()">+ Exercise</button><button class="btn" onclick="addWorkout()">+ Workout</button></div></header>
+<header><h1>LiftLog</h1><div class="actions"><button class="btn secondary" onclick="manageGroups()">Groups</button><button onclick="backup()">Backup</button><button onclick="document.getElementById('restoreFile').click()">Restore</button><input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restore(event)"><button class="btn secondary" onclick="addExercise()">+ Exercise</button><button class="btn" onclick="chooseWorkoutExercise()">+ Workout</button></div></header>
 <div id="migrationNotice" class="migrate"></div>
 <div id="workoutsBar"></div><main id="list"></main>
 <div id="empty" class="emptyState">Add an exercise to get started.</div>
@@ -32,7 +32,7 @@ h1{font-size:30px;margin:0;font-weight:750}.actions{display:flex;gap:8px}.btn{bo
 <div class="field"><label>Reps</label><div class="step"><button onclick="stepReps(-1)">−</button><input id="reps" inputmode="numeric" placeholder="10"><button onclick="stepReps(1)">+</button></div></div>
 <div class="sheetActions"><button class="btn secondary" onclick="closeSheet()">Cancel</button><button class="btn" onclick="saveEntry()">Save</button></div>
 <button class="btn danger" style="width:100%;margin-top:10px" onclick="deleteCurrentEntry()">Delete This Lift Entry</button>
-<button class="btn danger" style="width:100%;margin-top:10px" onclick="deleteCurrentWorkout()">Delete Entire Workout</button>
+<button class="btn danger" style="width:100%;margin-top:10px" onclick="deleteCurrentWorkout()">Delete This Workout Session</button>
 </div></div>
 <script>
 const KEY="liftlogV3";
@@ -66,9 +66,18 @@ const migratedFrom=migrate();
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
 function addExercise(){
  let n=prompt("Exercise name"); if(!n||!n.trim())return;
- data.exercises.push({name:n.trim(),group:"",entries:Array(data.workouts).fill("")}); save();
+ data.exercises.push({name:n.trim(),group:"",entries:[]}); save();
 }
-function addWorkout(){data.workouts++;data.exercises.forEach(e=>e.entries.push(""));save();current.wi=data.workouts-1}
+function addWorkoutForExercise(i){
+ let e=data.exercises[i]; if(!e)return;
+ e.entries.push(""); current={ei:i,wi:e.entries.length-1}; save(); openEntry(i,current.wi);
+}
+function chooseWorkoutExercise(){
+ if(!data.exercises.length){addExercise();return;}
+ let msg="Add workout to which exercise?\n\n"+data.exercises.map((e,i)=>(i+1)+". "+e.name).join("\n");
+ let n=parseInt(prompt(msg+"\n\nEnter the number:"),10);
+ if(n>=1&&n<=data.exercises.length)addWorkoutForExercise(n-1);
+}
 function removeExercise(i){if(confirm("Delete "+data.exercises[i].name+"?")){data.exercises.splice(i,1);save()}}
 function parse(v){let m=(v||"").split(/[×x]/);return{load:(m[0]||"").trim(),reps:(m[1]||"").trim()}}
 function openEntry(ei,wi){
@@ -97,10 +106,9 @@ function deleteCurrentEntry(){
  save();
 }
 function deleteCurrentWorkout(){
- if(!data.workouts)return;
- if(!confirm("Delete Workout "+(current.wi+1)+" for every exercise?"))return;
- data.workouts--;data.exercises.forEach(e=>e.entries.splice(current.wi,1));
- closeSheet();current.wi=Math.max(0,data.workouts-1);save();
+ let e=data.exercises[current.ei]; if(!e || !e.entries.length)return;
+ if(!confirm("Delete Workout "+(current.wi+1)+" for "+e.name+" only?"))return;
+ e.entries.splice(current.wi,1); closeSheet(); current.wi=Math.max(0,e.entries.length-1); save();
 }
 
 function manageGroups(){
@@ -123,28 +131,24 @@ function toggleGroup(name){
 
 function render(){
  let list=document.getElementById("list"),bar=document.getElementById("workoutsBar"),empty=document.getElementById("empty");
- bar.innerHTML=""; for(let w=0;w<data.workouts;w++){let b=document.createElement("button");b.className="pill"+(w==data.workouts-1?" active":"");b.textContent="Workout "+(w+1);b.onclick=()=>{current.wi=w;document.querySelectorAll(".pill").forEach(x=>x.classList.remove("active"));b.classList.add("active")};bar.appendChild(b)}
- list.innerHTML="";empty.style.display=data.exercises.length?"none":"block";
+ bar.innerHTML=""; list.innerHTML=""; empty.style.display=data.exercises.length?"none":"block";
  function card(e,i){
   let c=document.createElement("section");c.className="card";
   let t=document.createElement("div");t.className="cardtop";t.innerHTML='<div><div class="name"></div><div class="exercisegroup"></div></div><button class="delete">Delete</button>';
   t.querySelector(".name").textContent=e.name;t.querySelector(".exercisegroup").textContent=e.group?"Group: "+e.group:"Ungrouped";t.querySelector(".delete").onclick=()=>removeExercise(i);c.appendChild(t);
-  let cg=document.createElement("button");cg.className="tiny";cg.textContent="Change Group";cg.onclick=()=>changeExerciseGroup(i);c.appendChild(cg);
+  let a=document.createElement("div");a.style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px";
+  let add=document.createElement("button");add.className="btn";add.textContent="+ Add Workout";add.onclick=()=>addWorkoutForExercise(i);a.appendChild(add);
+  let cg=document.createElement("button");cg.className="tiny";cg.textContent="Change Group";cg.onclick=()=>changeExerciseGroup(i);a.appendChild(cg);c.appendChild(a);
   let sc=document.createElement("div");sc.className="scroller";let g=document.createElement("div");g.className="grid";
-  for(let w=0;w<data.workouts;w++){let cell=document.createElement("button");cell.className="cell"+(w==data.workouts-1?" latest":"")+(e.entries[w]?"":" empty");cell.innerHTML='<div class="wlabel">Workout '+(w+1)+'</div>';let v=document.createElement("div");v.textContent=e.entries[w]||"Tap to enter";cell.appendChild(v);cell.onclick=()=>openEntry(i,w);g.appendChild(cell)}
+  e.entries.forEach((v,w)=>{let cell=document.createElement("button");cell.className="cell"+(w===e.entries.length-1?" latest":"")+(v?"":" empty");cell.innerHTML='<div class="wlabel">Workout '+(w+1)+'</div>';let val=document.createElement("div");val.textContent=v||"Tap to enter";cell.appendChild(val);cell.onclick=()=>openEntry(i,w);g.appendChild(cell)});
+  if(!e.entries.length){let p=document.createElement("div");p.className="emptyState";p.style.padding="12px";p.textContent="No workouts for this lift yet.";g.appendChild(p)}
   sc.appendChild(g);c.appendChild(sc);return c;
  }
- let names=data.groups.map(g=>g.name), used={};
- names.forEach(n=>used[n]=[]);
- data.exercises.forEach((e,i)=>{if(e.group&&used[e.group])used[e.group].push([e,i]);});
- names.forEach(n=>{
-  let g=data.groups.find(x=>x.name==n),sec=document.createElement("div");sec.className="group";
-  let h=document.createElement("button");h.className="grouphead";h.innerHTML='<span><span class="arrow">'+(g.collapsed?"▶":"▼")+'</span> '+n+' ('+used[n].length+')</span>';h.onclick=()=>toggleGroup(n);sec.appendChild(h);
-  let body=document.createElement("div");body.className="groupbody"+(g.collapsed?" collapsed":"");
-  used[n].forEach(([e,i])=>body.appendChild(card(e,i)));sec.appendChild(body);list.appendChild(sec);
- });
- let un=data.exercises.map((e,i)=>[e,i]).filter(([e])=>!e.group);
- if(un.length){let sec=document.createElement("div");sec.className="group";let h=document.createElement("button");h.className="grouphead";h.innerHTML='<span>▼ Ungrouped ('+un.length+')</span>';sec.appendChild(h);let body=document.createElement("div");un.forEach(([e,i])=>body.appendChild(card(e,i)));sec.appendChild(body);list.appendChild(sec);}
+ let names=data.groups.map(g=>g.name),used={};names.forEach(n=>used[n]=[]);
+ data.exercises.forEach((e,i)=>{if(e.group&&used[e.group])used[e.group].push([e,i])});
+ names.forEach(n=>{let g=data.groups.find(x=>x.name===n),sec=document.createElement("div");sec.className="group";let h=document.createElement("button");h.className="grouphead";h.innerHTML='<span><span class="arrow">'+(g.collapsed?"▶":"▼")+'</span> '+n+' ('+used[n].length+')</span>';h.onclick=()=>toggleGroup(n);sec.appendChild(h);let body=document.createElement("div");body.className="groupbody"+(g.collapsed?" collapsed":"");used[n].forEach(x=>body.appendChild(card(x[0],x[1])));sec.appendChild(body);list.appendChild(sec)});
+ let un=data.exercises.map((e,i)=>[e,i]).filter(x=>!x[0].group);
+ if(un.length){let sec=document.createElement("div");sec.className="group";let h=document.createElement("button");h.className="grouphead";h.innerHTML='<span>▼ Ungrouped ('+un.length+')</span>';sec.appendChild(h);let body=document.createElement("div");un.forEach(x=>body.appendChild(card(x[0],x[1])));sec.appendChild(body);list.appendChild(sec)}
 }
 if(migratedFrom){const n=document.getElementById("migrationNotice");n.style.display="block";n.innerHTML="Your existing workout data was imported from the previous version. <button class='btn secondary' onclick='this.parentElement.style.display=\"none\"'>OK</button>"}
 render();
